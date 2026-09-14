@@ -48,10 +48,17 @@ class TokenError(Exception):
 
 
 def verify_token(public_key, token: str) -> dict:
-    header_b64, payload_b64, signature_b64 = token.split(".")
+    try:
+        header_b64, payload_b64, signature_b64 = token.split(".")
+    except ValueError:
+        raise TokenError("malformed token: expected three dot-separated segments")
 
     signing_input = f"{header_b64}.{payload_b64}".encode("ascii")
-    signature = b64url_decode(signature_b64)
+
+    try:
+        signature = b64url_decode(signature_b64)
+    except (ValueError, TypeError, base64.binascii.Error):
+        raise TokenError("malformed token: signature is not valid base64url")
 
     try:
         public_key.verify(
@@ -63,7 +70,11 @@ def verify_token(public_key, token: str) -> dict:
     except InvalidSignature:
         raise TokenError("signature verification failed: token was altered or forged")
 
-    payload = json.loads(b64url_decode(payload_b64))
+    try:
+        payload = json.loads(b64url_decode(payload_b64))
+    except (ValueError, TypeError, base64.binascii.Error, json.JSONDecodeError):
+        raise TokenError("malformed token: payload is not valid base64url JSON")
+
     now = int(time.time())
 
     if payload.get("exp", 0) < now:
