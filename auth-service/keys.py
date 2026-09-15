@@ -1,6 +1,7 @@
 from cryptography.hazmat.primitives.asymmetric import rsa
 from cryptography.hazmat.primitives import serialization
-
+import hashlib
+import base64
 
 def generate_key() -> rsa.RSAPrivateKey:
     return rsa.generate_private_key(public_exponent=65537, key_size=2048)
@@ -24,6 +25,33 @@ def save_public_key(public_key: rsa.RSAPublicKey, path: str) -> None:
     with open(path, "wb") as f:
         f.write(pem)
 
+
+def key_id(public_key: rsa.RSAPublicKey) -> str:
+    """A short, deterministic identifier for a key, derived from its public bytes."""
+    public_bytes = public_key.public_bytes(
+        encoding=serialization.Encoding.PEM,
+        format=serialization.PublicFormat.SubjectPublicKeyInfo,
+    )
+    return hashlib.sha256(public_bytes).hexdigest()[:12]    
+
+
+def _b64url_uint(value: int) -> str:
+    """Base64url-encode an integer as raw big-endian bytes, no padding."""
+    byte_length = (value.bit_length() + 7) // 8
+    raw = value.to_bytes(byte_length, byteorder="big")
+    return base64.urlsafe_b64encode(raw).rstrip(b"=").decode("ascii")
+
+
+def public_key_to_jwk(public_key: rsa.RSAPublicKey, kid: str) -> dict:
+    numbers = public_key.public_numbers()
+    return {
+        "kty": "RSA",
+        "use": "sig",
+        "alg": "RS256",
+        "kid": kid,
+        "n": _b64url_uint(numbers.n),
+        "e": _b64url_uint(numbers.e),
+    }
 
 def load_private_key(path: str) -> rsa.RSAPrivateKey:
     with open(path, "rb") as f:

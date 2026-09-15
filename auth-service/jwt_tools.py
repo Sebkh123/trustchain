@@ -6,7 +6,7 @@ from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.asymmetric import padding, rsa
 
 from cryptography.exceptions import InvalidSignature
-
+from keys import key_id 
 
 
 def b64url_encode(data: bytes) -> str:
@@ -14,7 +14,7 @@ def b64url_encode(data: bytes) -> str:
 
 
 def issue_token(private_key: rsa.RSAPrivateKey, payload: dict, ttl_seconds: int = 300) -> str:
-    header = {"alg": "RS256", "typ": "JWT"}
+    header = {"alg": "RS256", "typ": "JWT", "kid": key_id(private_key.public_key())}
 
     now = int(time.time())
     full_payload = {
