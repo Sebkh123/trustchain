@@ -1,3 +1,4 @@
+import os
 from fastapi import FastAPI, HTTPException, Header
 
 from jwks_client import fetch_jwks, jwk_to_public_key
@@ -5,7 +6,8 @@ from jwt_verifier import verify_token, TokenError
 
 app = FastAPI(title="trustchain api-service")
 
-AUTH_SERVICE_JWKS_URL = "http://127.0.0.1:8000/.well-known/jwks.json"
+AUTH_SERVICE_URL = os.environ.get("AUTH_SERVICE_URL", "http://127.0.0.1:8000")
+AUTH_SERVICE_JWKS_URL = f"{AUTH_SERVICE_URL}/.well-known/jwks.json"
 
 # Fetch once at startup, cached for the process lifetime.
 _jwks = fetch_jwks(AUTH_SERVICE_JWKS_URL)
