@@ -1,0 +1,8 @@
+api-service has been deployed.
+
+Check its status with:
+  kubectl get pods -l app=api-service
+
+Check the service with:
+  kubectl get svc api-service
+  

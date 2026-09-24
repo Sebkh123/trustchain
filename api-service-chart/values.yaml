@@ -1,0 +1,11 @@
+image:
+  repository: trustchain-api-service
+  tag: latest
+  pullPolicy: IfNotPresent
+
+service:
+  port: 8002
+
+replicaCount: 1
+
+authServiceUrl: http://auth-service:8000
