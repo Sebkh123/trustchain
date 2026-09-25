@@ -1,0 +1,6 @@
+apiVersion: v2
+name: reverse-proxy-chart
+description: Helm chart for the trustchain reverse proxy (Nginx, TLS termination, path routing)
+type: application
+version: 0.1.0
+appVersion: "1.0.0"

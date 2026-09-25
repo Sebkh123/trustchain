@@ -1,0 +1,7 @@
+reverse-proxy has been deployed.
+
+Check its status with:
+  kubectl get pods -l app=reverse-proxy
+
+Test it with:
+  kubectl port-forward svc/reverse-proxy 8443:443
