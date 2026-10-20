@@ -28,8 +28,9 @@ derived from the public key, which lets api-service pick the right key from the
 JWKS, and `exp`/`nbf` are enforced.
 
 **2. Containers: Docker Compose**
-All three services run together. api-service takes its auth URL from an
-environment variable instead of a hardcoded address.
+All three services run together. Only the reverse proxy publishes a port on the
+host; the services are reachable only through it. api-service takes its auth URL
+from an environment variable instead of a hardcoded address.
 
 **3. Kubernetes: kind and Helm**
 One Helm chart per service. The proxy's configuration comes from a ConfigMap
@@ -71,7 +72,7 @@ The same test script works against either environment, because it only talks to
 
 ```
 docker compose up --build
-python test_compose_flow.py
+python test_flow.py
 docker compose down
 ```
 
@@ -94,56 +95,4 @@ kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/st
 # Network policies and the three Argo CD Applications
 kubectl apply -f k8s/00-default-deny.yaml -f k8s/01-allow-rules.yaml
 kubectl apply -f k8s/argocd-auth-service-app.yaml \
-              -f k8s/argocd-api-service-app.yaml \
-              -f k8s/argocd-reverse-proxy-app.yaml
-
-kubectl get applications -n argocd        # expect Synced / Healthy
-kubectl port-forward svc/reverse-proxy 8443:443
-python test_compose_flow.py               # in a second terminal
-```
-
-Argo CD reads the charts from this GitHub repository, so the repository must be
-reachable from the cluster. A private repository needs credentials stored as a
-Secret, kept in a git-ignored file.
-
-### Azure
-
-```
-cd terraform
-terraform init
-terraform plan
-terraform apply
-terraform destroy
-```
-
-Needs an Azure subscription and a git-ignored `terraform.tfvars` containing
-`subscription_id`. The resources used here have no cost.
-
-## Problems found along the way
-
-**Code**
-- The payload was parsed before the signature was verified, so a tampered token crashed the service instead of being rejected.
-- Malformed input to `/verify` caused a 500 instead of a clean error.
-- A missing exception handler on header decoding in api-service had the same effect.
-
-**Infrastructure**
-- Compose published the service ports (8000 and 8002) directly on the host, bypassing the proxy. This is visible in `docker ps` and is listed in the gaps below.
-- Compose and the cluster ran different images, and therefore different baked-in signing keys: the `kid` in tokens differed between environments. Changing code means rebuilding the image and loading it into kind again.
-- Terraform's automatic resource provider registration failed on providers this project does not use. It is disabled (`resource_provider_registrations = "none"`) and only `Microsoft.Network` is registered.
-- The `westeurope` region rejected new resources for this subscription (`RequestDisallowedByAzure`). The region default is now `northeurope`.
-
-## Known gaps
-
-- **Egress is unrestricted** in both Kubernetes (policies cover ingress only) and Azure (subnets keep default outbound access).
-- **Pod-to-pod traffic is plain HTTP.** TLS ends at the proxy. Mutual TLS between services (Linkerd) is planned.
-- **Compose exposes the service ports** on the host, so the services can be reached without going through the proxy.
-- **`depends_on` only orders startup.** It does not wait for readiness, so api-service can start before auth-service is ready.
-- **The private key is baked into the Docker image.** Production would use a secrets manager such as Azure Key Vault.
-- **The TLS secret is created by hand** and is not in git, so it must be recreated if the cluster is rebuilt.
-- **Terraform builds the network only.** No workloads run in the VNet, and state is kept locally rather than in a remote backend.
-
-## Planned
-
-- Linkerd for mTLS between pods
-- Readiness probes and a retry on the JWKS fetch
-- NetworkPolicies managed through Argo CD
+              -f
