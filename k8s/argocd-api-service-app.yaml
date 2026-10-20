@@ -1,0 +1,18 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: api-service              # reverse-proxy in the other file
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/Sebkh123/trustchain.git
+    targetRevision: HEAD
+    path: api-service-chart      # reverse-proxy-chart in the other file
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: default
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
