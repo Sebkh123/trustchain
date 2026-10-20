@@ -4,3 +4,7 @@ __pycache__/
 *.pem
 .env
 argocd-repo-creds.yaml
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfvars
