@@ -1,15 +1,11 @@
 services:
   auth-service:
     build: ./auth-service
-    ports:
-      - "8000:8000"
 
   api-service:
     build: ./api-service
     environment:
       - AUTH_SERVICE_URL=http://auth-service:8000
-    ports:
-      - "8002:8002"
     depends_on:
       - auth-service
 
